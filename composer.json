@@ -17,12 +17,15 @@
     "require": {
         "php": "^8.0",
         "bunny/bunny": "@dev",
+        "symfony/serializer": "^6.0",
         "zorachka/console": "^1.0",
         "zorachka/container": "^2.0",
         "zorachka/event-dispatcher": "^2.1"
     },
     "require-dev": {
         "pestphp/pest": "^1.21",
+        "pestphp/pest-plugin-mock": "^1.0",
+        "pestphp/pest-plugin-watch": "1.x-dev",
         "roave/security-advisories": "dev-latest"
     },
     "autoload": {
