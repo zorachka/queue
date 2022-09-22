@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Zorachka\Framework\Queue;
+namespace Zorachka\Framework\Queue\Transport\Bunny;
 
 use Bunny\Channel;
 use Bunny\Client;

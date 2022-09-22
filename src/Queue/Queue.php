@@ -4,52 +4,56 @@ declare(strict_types=1);
 
 namespace Zorachka\Framework\Queue;
 
-use Psr\Log\LoggerInterface;
-use Bunny\Client;
+use Symfony\Component\Serializer\SerializerInterface;
 
 final class Queue
 {
-    private Client $client;
-    private LoggerInterface $logger;
-    private Worker $worker;
+    private string $name;
+    private Driver $driver;
+    private array $handlers;
+    private SerializerInterface $serializer;
 
-    public function __construct(Client $client, LoggerInterface $logger, Worker $worker)
-    {
-        $this->client = $client;
-        $this->logger = $logger;
-        $this->worker = $worker;
+    /**
+     * @param string $name
+     * @param array $handlers
+     * @param Driver $driver
+     * @param SerializerInterface $serializer
+     */
+    public function __construct(
+        string $name,
+        array $handlers,
+        Driver $driver,
+        SerializerInterface $serializer,
+    ) {
+        $this->name = $name;
+        $this->handlers = $handlers;
+        $this->driver = $driver;
+        $this->serializer = $serializer;
     }
 
-    public function push(string $queueName, string $message): void
+    public function publish(object $message): void
     {
-        $this->client->connect();
-
-        $channel = $this->client->channel();
-        $channel->queueDeclare($queueName); // Queue name
-
-        $channel->publish(
-            $message, // $message,    // The message you're publishing as a string
-            [],          // Any headers you want to add to the message
-            '',          // Exchange name
-            $queueName // Routing key, in this example the queue's name
+        $this->driver->publish(
+            $this->name,
+            $this->serializer->serialize([
+                'type' => $message::class,
+                'payload' => $message,
+            ], 'json')
         );
-        $channel->close();
-
-        $this->client->disconnect();
     }
 
-    public function listen(string $queueName): void
+    public function consume(): void
     {
-        $this->client->connect();
+        $this->driver->consume(
+            $this->name,
+            function (string $message) {
+                $deserialized = \json_decode($message, true);
+                $payload = $this->serializer->deserialize($deserialized['payload'], $deserialized['type'], 'json');
 
-        $channel = $this->client->channel();
-        $channel->queueDeclare($queueName); // Queue name
+                $handle = $this->handlers[$deserialized['type']];
 
-        $this->logger->info(" [*] Waiting for messages in «" . $queueName . "» queue. To exit press CTRL+C\n");
-
-        $channel->run(
-            $this->worker,
-            $queueName,
+                $handle($payload);
+            },
         );
     }
 }

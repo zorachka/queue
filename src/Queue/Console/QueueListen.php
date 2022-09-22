@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Zorachka\Framework\Queue\Console;
 
-use Zorachka\Framework\Queue\Queue;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Zorachka\Framework\Queue\Transport\Bunny\Queue;
 
 final class QueueListen extends Command
 {
     protected static $defaultName = 'queue:listen';
+    protected static $defaultDescription = 'Listen for queue messages';
+
     private Queue $queue;
 
     public function __construct(Queue $queue)
@@ -23,13 +26,15 @@ final class QueueListen extends Command
     public function configure(): void
     {
         $this
-            ->setDescription('Listen for queue messages');
+            ->addArgument('queueName', InputArgument::REQUIRED, 'Queue name');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->queue->listen('events');
+        /** @var string $queueName */
+        $queueName = $input->getArgument('queueName');
+        $this->queue->listen($queueName);
 
-        return 0;
+        return Command::SUCCESS;
     }
 }
